@@ -35,12 +35,9 @@ contract Crowdfunding {
         _;
     }
 
-    function createCampaign(
-        string calldata title,
-        string calldata description,
-        uint256 goal,
-        uint256 deadline
-    ) external {
+    function createCampaign(string calldata title, string calldata description, uint256 goal, uint256 deadline)
+        external
+    {
         require(goal > 0, "Goal must be greater than 0");
         require(deadline > block.timestamp, "Deadline must be in the future");
 
@@ -79,7 +76,7 @@ contract Crowdfunding {
 
         campaign.withdrawn = true;
         uint256 amount = campaign.raised;
-        (bool sent, ) = payable(campaign.owner).call{value: amount}("");
+        (bool sent,) = payable(campaign.owner).call{value: amount}("");
         require(sent, "Withdrawal failed");
 
         emit FundsWithdrawn(campaignId, campaign.owner, amount);
@@ -94,7 +91,7 @@ contract Crowdfunding {
         require(donated > 0, "No donation to refund");
 
         contributions[campaignId][msg.sender] = 0;
-        (bool sent, ) = payable(msg.sender).call{value: donated}("");
+        (bool sent,) = payable(msg.sender).call{value: donated}("");
         require(sent, "Refund failed");
 
         emit RefundIssued(campaignId, msg.sender, donated);

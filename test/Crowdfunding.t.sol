@@ -34,7 +34,16 @@ contract CrowdfundingTest is Test {
 
         crowdfunding.createCampaign("Build a school", "Help us build a school", goal, deadline);
 
-        (address campaignOwner, string memory title, string memory description, uint256 campaignGoal, uint256 campaignDeadline, uint256 raised, bool withdrawn, address[] memory contributors) = crowdfunding.getCampaign(1);
+        (
+            address campaignOwner,
+            string memory title,
+            string memory description,
+            uint256 campaignGoal,
+            uint256 campaignDeadline,
+            uint256 raised,
+            bool withdrawn,
+            address[] memory contributors
+        ) = crowdfunding.getCampaign(1);
 
         assertEq(campaignOwner, owner);
         assertEq(title, "Build a school");
@@ -73,7 +82,7 @@ contract CrowdfundingTest is Test {
         emit Crowdfunding.DonationReceived(1, alice, 0.3 ether);
         crowdfunding.donate{value: 0.3 ether}(1);
 
-        (address campaignOwner, , , , , uint256 raised, , ) = crowdfunding.getCampaign(1);
+        (address campaignOwner,,,,, uint256 raised,,) = crowdfunding.getCampaign(1);
         assertEq(raised, 0.3 ether);
 
         uint256 contribution = crowdfunding.getContribution(1, alice);
@@ -94,7 +103,7 @@ contract CrowdfundingTest is Test {
         uint256 contribution = crowdfunding.getContribution(1, alice);
         assertEq(contribution, 1 ether);
 
-        (address campaignOwner, , , , , uint256 raised, , ) = crowdfunding.getCampaign(1);
+        (address campaignOwner,,,,, uint256 raised,,) = crowdfunding.getCampaign(1);
         assertEq(raised, 1 ether);
     }
 
@@ -109,7 +118,7 @@ contract CrowdfundingTest is Test {
         vm.prank(bob);
         crowdfunding.donate{value: 1 ether}(1);
 
-        (address campaignOwner, , , , , uint256 raised, , address[] memory contributors) = crowdfunding.getCampaign(1);
+        (address campaignOwner,,,,, uint256 raised,, address[] memory contributors) = crowdfunding.getCampaign(1);
         assertEq(raised, 1.5 ether);
         assertEq(contributors.length, 2);
         assertEq(contributors[0], alice);
@@ -162,7 +171,7 @@ contract CrowdfundingTest is Test {
 
         assertEq(ownerBalanceAfter - ownerBalanceBefore, 1.2 ether);
 
-        (address campaignOwner, , , , , , bool withdrawn, ) = crowdfunding.getCampaign(1);
+        (address campaignOwner,,,,,, bool withdrawn,) = crowdfunding.getCampaign(1);
         assertEq(withdrawn, true);
     }
 
