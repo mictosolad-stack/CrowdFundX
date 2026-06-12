@@ -4,38 +4,193 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>CrowdFundX</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="styles.css" />
 </head>
 <body>
-  <header>
-    <div class="brand">CrowdFundX</div>
-    <button id="walletButton">Connect Wallet</button>
+  <header class="topbar">
+    <a class="brand" href="./" aria-label="CrowdFundX home">
+      <span class="brand-mark">CX</span>
+      <span>CrowdFundX</span>
+    </a>
+
+    <div class="wallet-area">
+      <span id="networkBadge" class="status-badge muted">No network</span>
+      <button id="walletButton" class="primary-button" type="button">
+        <span aria-hidden="true">+</span>
+        <span>Connect Wallet</span>
+      </button>
+    </div>
   </header>
 
   <main>
-    <section class="status-panel">
-      <div id="walletAddress">Wallet not connected</div>
-      <div id="message"></div>
+    <section class="hero-band" aria-labelledby="pageTitle">
+      <div class="hero-copy">
+        <p class="eyebrow">On-chain campaign funding</p>
+        <h1 id="pageTitle">Launch, back, and settle crowdfunding campaigns.</h1>
+        <p>
+          Create ETH goals, track real-time funding, withdraw successful campaigns, and claim refunds when a campaign misses its target.
+        </p>
+      </div>
+
+      <div class="impact-panel" aria-label="CrowdFundX overview">
+        <div class="impact-rings" aria-hidden="true">
+          <span></span>
+          <span></span>
+          <span></span>
+        </div>
+        <div class="impact-stat">
+          <strong id="heroRaised">0 ETH</strong>
+          <span>Total raised</span>
+        </div>
+      </div>
     </section>
 
-    <section class="card">
-      <h2>Create Campaign</h2>
-      <form id="campaignForm">
-        <label>Title<input id="campaignTitle" required /></label>
-        <label>Description<textarea id="campaignDescription" required></textarea></label>
-        <label>Goal (ETH)<input id="campaignGoal" type="number" min="0.01" step="0.01" required /></label>
-        <label>Deadline<input id="campaignDeadline" type="datetime-local" required /></label>
-        <button type="submit">Create Campaign</button>
+    <section class="notice-row" aria-live="polite">
+      <div>
+        <span id="walletAddress">Wallet not connected</span>
+        <span id="contractStatus">Contract not configured</span>
+      </div>
+      <p id="message">Connect your wallet and set the deployed contract address to get started.</p>
+    </section>
+
+    <section class="setup-panel" aria-labelledby="setupTitle">
+      <div>
+        <p class="eyebrow">Setup</p>
+        <h2 id="setupTitle">Contract connection</h2>
+      </div>
+      <form id="contractForm" class="contract-form">
+        <label for="contractAddressInput">Crowdfunding contract address</label>
+        <div class="inline-control">
+          <input id="contractAddressInput" inputmode="text" autocomplete="off" placeholder="0x..." />
+          <button type="submit" class="secondary-button">Save</button>
+        </div>
       </form>
     </section>
 
-    <section class="card">
-      <h2>Campaigns</h2>
-      <div id="campaigns"></div>
+    <section class="stats-grid" aria-label="Campaign statistics">
+      <article>
+        <span>Total campaigns</span>
+        <strong id="totalCampaigns">0</strong>
+      </article>
+      <article>
+        <span>Active</span>
+        <strong id="activeCampaigns">0</strong>
+      </article>
+      <article>
+        <span>Successful</span>
+        <strong id="successfulCampaigns">0</strong>
+      </article>
+      <article>
+        <span>Your contribution</span>
+        <strong id="yourContribution">0 ETH</strong>
+      </article>
+    </section>
+
+    <section class="workspace">
+      <div class="create-panel">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Creator desk</p>
+            <h2>Create campaign</h2>
+          </div>
+        </div>
+
+        <form id="campaignForm" class="stacked-form">
+          <label>
+            Campaign title
+            <input id="campaignTitle" maxlength="80" required placeholder="Solar kits for students" />
+          </label>
+
+          <label>
+            Description
+            <textarea id="campaignDescription" maxlength="500" required placeholder="Explain what will be funded and how supporters will help."></textarea>
+          </label>
+
+          <div class="field-grid">
+            <label>
+              Goal in ETH
+              <input id="campaignGoal" type="number" min="0.0001" step="0.0001" required placeholder="1.5" />
+            </label>
+
+            <label>
+              Deadline
+              <input id="campaignDeadline" type="datetime-local" required />
+            </label>
+          </div>
+
+          <button type="submit" class="primary-button wide-button">Create Campaign</button>
+        </form>
+      </div>
+
+      <section class="campaign-panel" aria-labelledby="campaignsTitle">
+        <div class="section-heading">
+          <div>
+            <p class="eyebrow">Explore</p>
+            <h2 id="campaignsTitle">Campaigns</h2>
+          </div>
+          <button id="refreshButton" type="button" class="icon-button" aria-label="Refresh campaigns" title="Refresh campaigns">
+            <span aria-hidden="true">↻</span>
+          </button>
+        </div>
+
+        <div id="campaigns" class="campaign-list"></div>
+      </section>
     </section>
   </main>
 
-  <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.min.js"></script>
+  <template id="campaignTemplate">
+    <article class="campaign-card">
+      <div class="campaign-card-header">
+        <div>
+          <span class="campaign-id"></span>
+          <h3></h3>
+        </div>
+        <span class="campaign-state"></span>
+      </div>
+      <p class="campaign-description"></p>
+      <dl class="campaign-facts">
+        <div>
+          <dt>Goal</dt>
+          <dd class="campaign-goal"></dd>
+        </div>
+        <div>
+          <dt>Raised</dt>
+          <dd class="campaign-raised"></dd>
+        </div>
+        <div>
+          <dt>Backers</dt>
+          <dd class="campaign-backers"></dd>
+        </div>
+        <div>
+          <dt>Deadline</dt>
+          <dd class="campaign-deadline"></dd>
+        </div>
+      </dl>
+      <div class="progress-wrap">
+        <div class="progress-label">
+          <span class="campaign-percent"></span>
+          <span class="campaign-remaining"></span>
+        </div>
+        <div class="progress-bar">
+          <span class="progress-completed"></span>
+        </div>
+      </div>
+      <p class="owner-line"></p>
+      <form class="donate-form">
+        <label>
+          Donate ETH
+          <input class="donate-amount" type="number" min="0.0001" step="0.0001" placeholder="0.05" />
+        </label>
+        <button type="submit" class="secondary-button">Donate</button>
+      </form>
+      <div class="owner-actions"></div>
+    </article>
+  </template>
+
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
   <script type="module" src="app.js"></script>
 </body>
 </html>
