@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CrowdFundX</title>
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header>
+    <div class="brand">CrowdFundX</div>
+    <button id="walletButton">Connect Wallet</button>
+  </header>
+
+  <main>
+    <section class="status-panel">
+      <div id="walletAddress">Wallet not connected</div>
+      <div id="message"></div>
+    </section>
+
+    <section class="card">
+      <h2>Create Campaign</h2>
+      <form id="campaignForm">
+        <label>Title<input id="campaignTitle" required /></label>
+        <label>Description<textarea id="campaignDescription" required></textarea></label>
+        <label>Goal (ETH)<input id="campaignGoal" type="number" min="0.01" step="0.01" required /></label>
+        <label>Deadline<input id="campaignDeadline" type="datetime-local" required /></label>
+        <button type="submit">Create Campaign</button>
+      </form>
+    </section>
+
+    <section class="card">
+      <h2>Campaigns</h2>
+      <div id="campaigns"></div>
+    </section>
+  </main>
+
+  <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.min.js"></script>
+  <script type="module" src="app.js"></script>
+</body>
+</html>
