@@ -1,6 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.19;
 
+import {console} from "forge-std/console.sol";
 import {Script} from "forge-std/Script.sol";
 import {Crowdfunding} from "../src/Crowdfunding.sol";
 

@@ -5,10 +5,18 @@ import {Test} from "forge-std/Test.sol";
 import {Crowdfunding} from "../src/Crowdfunding.sol";
 
 contract CrowdfundingTest is Test {
+
+    event CampaignCreated(uint256 indexed campaignId, address indexed owner, uint256 goal, uint256 deadline);
+    event DonationReceived(uint256 indexed campaignId, address indexed donor, uint256 amount);
+    event FundsWithdrawn(uint256 indexed campaignId, address indexed owner, uint256 amount);
+    event RefundIssued(uint256 indexed campaignId, address indexed contributor, uint256 amount);
+
     Crowdfunding public crowdfunding;
     address owner;
     address alice;
     address bob;
+
+    receive() external payable {}
 
     function setUp() public {
         owner = address(this);
@@ -30,7 +38,7 @@ contract CrowdfundingTest is Test {
         uint256 deadline = block.timestamp + 7 days;
 
         vm.expectEmit(true, true, false, true);
-        emit Crowdfunding.CampaignCreated(1, owner, goal, deadline);
+        emit CampaignCreated(1, owner, goal, deadline);
 
         crowdfunding.createCampaign("Build a school", "Help us build a school", goal, deadline);
 
@@ -64,7 +72,7 @@ contract CrowdfundingTest is Test {
 
     function test_CannotCreateCampaignWithPastDeadline() public {
         uint256 goal = 1 ether;
-        uint256 pastDeadline = block.timestamp - 1 days;
+        uint256 pastDeadline = block.timestamp ;
 
         vm.expectRevert("Deadline must be in the future");
         crowdfunding.createCampaign("Past deadline", "Invalid", goal, pastDeadline);
@@ -79,7 +87,7 @@ contract CrowdfundingTest is Test {
 
         vm.prank(alice);
         vm.expectEmit(true, true, false, true);
-        emit Crowdfunding.DonationReceived(1, alice, 0.3 ether);
+        emit DonationReceived(1, alice, 0.3 ether);
         crowdfunding.donate{value: 0.3 ether}(1);
 
         (address campaignOwner,,,,, uint256 raised,,) = crowdfunding.getCampaign(1);
