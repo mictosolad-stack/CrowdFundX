@@ -4,5 +4,4 @@ node_modules
 .cache
 artifacts
 cache
-frontend/contract-address.json
-frontend/Crowdfunding.json
+public

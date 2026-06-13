@@ -3,9 +3,11 @@
   "version": "0.1.0",
   "private": true,
   "scripts": {
-    "compile": "npx hardhat compile",
-    "test": "npx hardhat test",
-    "deploy": "npx hardhat run scripts/deploy.js --network sepolia",
+    "compile": "forge build",
+    "test": "forge test",
+    "deploy": "forge script script/DeployCrowdfunding.s.sol:DeployCrowdfunding --rpc-url $ARC_RPC_URL --private-key $PRIVATE_KEY --broadcast",
+    "build": "mkdir -p public && cp -R frontend/. public/",
+    "dev": "npx http-server frontend -c-1",
     "start": "npx http-server frontend -c-1"
   },
   "devDependencies": {

@@ -31,7 +31,7 @@
         <p class="eyebrow">On-chain campaign funding</p>
         <h1 id="pageTitle">Launch, back, and settle crowdfunding campaigns.</h1>
         <p>
-          Create ETH goals, track real-time funding, withdraw successful campaigns, and claim refunds when a campaign misses its target.
+          Create USDC goals on Arc, track real-time funding, withdraw successful campaigns, and claim refunds when a campaign misses its target.
         </p>
       </div>
 
@@ -42,7 +42,7 @@
           <span></span>
         </div>
         <div class="impact-stat">
-          <strong id="heroRaised">0 ETH</strong>
+          <strong id="heroRaised">0 USDC</strong>
           <span>Total raised</span>
         </div>
       </div>
@@ -53,19 +53,19 @@
         <span id="walletAddress">Wallet not connected</span>
         <span id="contractStatus">Contract not configured</span>
       </div>
-      <p id="message">Connect your wallet and set the deployed contract address to get started.</p>
+      <p id="message">Connect your wallet on Arc testnet to get started.</p>
     </section>
 
     <section class="setup-panel" aria-labelledby="setupTitle">
       <div>
-        <p class="eyebrow">Setup</p>
-        <h2 id="setupTitle">Contract connection</h2>
+        <p class="eyebrow">Network</p>
+        <h2 id="setupTitle">Arc contract</h2>
       </div>
       <form id="contractForm" class="contract-form">
-        <label for="contractAddressInput">Crowdfunding contract address</label>
+        <label for="contractAddressInput">Deployed Crowdfunding contract</label>
         <div class="inline-control">
           <input id="contractAddressInput" inputmode="text" autocomplete="off" placeholder="0x..." />
-          <button type="submit" class="secondary-button">Save</button>
+          <button type="submit" class="secondary-button">Override</button>
         </div>
       </form>
     </section>
@@ -85,7 +85,7 @@
       </article>
       <article>
         <span>Your contribution</span>
-        <strong id="yourContribution">0 ETH</strong>
+        <strong id="yourContribution">0 USDC</strong>
       </article>
     </section>
 
@@ -111,7 +111,7 @@
 
           <div class="field-grid">
             <label>
-              Goal in ETH
+              Goal in USDC
               <input id="campaignGoal" type="number" min="0.0001" step="0.0001" required placeholder="1.5" />
             </label>
 
@@ -181,7 +181,7 @@
       <p class="owner-line"></p>
       <form class="donate-form">
         <label>
-          Donate ETH
+          Donate USDC
           <input class="donate-amount" type="number" min="0.0001" step="0.0001" placeholder="0.05" />
         </label>
         <button type="submit" class="secondary-button">Donate</button>

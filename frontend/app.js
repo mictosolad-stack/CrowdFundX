@@ -20,6 +20,11 @@ const statEls = {
 
 const CONTRACT_STORAGE_KEY = "crowdfundx.contractAddress";
 const ADDRESS_PLACEHOLDER = "0xREPLACE_WITH_DEPLOYED_CONTRACT_ADDRESS";
+const DEFAULT_CONTRACT_ADDRESS = "0x42b387aebd51f2f768b05f2c4ffa95e2f4295201";
+const TOKEN_SYMBOL = "USDC";
+// Arc native USDC uses 18 decimals for msg.value/gas accounting.
+// Use 6 only if this dApp is rewritten to transfer ERC-20 USDC via transferFrom.
+const TOKEN_DECIMALS = 18;
 
 let provider;
 let signer;
@@ -35,7 +40,7 @@ async function initialize() {
   setBusy(false);
 
   await loadContractMetadata();
-  applyContractAddress(localStorage.getItem(CONTRACT_STORAGE_KEY) || contractAddress);
+  applyContractAddress(localStorage.getItem(CONTRACT_STORAGE_KEY) || contractAddress || DEFAULT_CONTRACT_ADDRESS);
 
   if (!window.ethereum) {
     showMessage("Install MetaMask or another injected wallet to use CrowdFundX.", "error");
@@ -50,7 +55,7 @@ async function initialize() {
   if (window.ethereum.selectedAddress) {
     await connectWallet();
   } else {
-    renderEmptyState("Connect wallet", "Connect your wallet to create campaigns and load on-chain data.");
+    renderEmptyState("Connect wallet", "Connect your wallet on Arc testnet to create campaigns and load on-chain data.");
   }
 }
 
@@ -115,8 +120,8 @@ async function connectWallet() {
     updateWalletUi();
 
     if (!contractAddress) {
-      showMessage("Paste your deployed contract address to load campaigns.", "warning");
-      renderEmptyState("Contract address needed", "Deploy the contract, then paste its address above.");
+      showMessage("Contract address is not configured.", "warning");
+      renderEmptyState("Contract address needed", "Add a deployed contract address to the app config.");
       return;
     }
 
@@ -200,7 +205,7 @@ async function handleCampaignCreate(event) {
     }
 
     setBusy(true, "Creating campaign...");
-    const tx = await contract.createCampaign(title, description, ethers.parseEther(goal), deadline);
+    const tx = await contract.createCampaign(title, description, parseTokenAmount(goal), deadline);
     showMessage("Transaction submitted. Waiting for confirmation...", "success");
     await tx.wait();
 
@@ -304,8 +309,8 @@ function createCampaignCard(campaign) {
   card.querySelector(".campaign-description").textContent = campaign.description;
   card.querySelector(".campaign-state").textContent = state.label;
   card.querySelector(".campaign-state").className = `campaign-state ${state.className}`;
-  card.querySelector(".campaign-goal").textContent = `${formatEth(campaign.goal)} ETH`;
-  card.querySelector(".campaign-raised").textContent = `${formatEth(campaign.raised)} ETH`;
+  card.querySelector(".campaign-goal").textContent = formatTokenAmount(campaign.goal);
+  card.querySelector(".campaign-raised").textContent = formatTokenAmount(campaign.raised);
   card.querySelector(".campaign-backers").textContent = String(campaign.contributors.length);
   card.querySelector(".campaign-deadline").textContent = formatDate(campaign.deadline);
   card.querySelector(".campaign-percent").textContent = `${campaign.progress.toFixed(1)}% funded`;
@@ -313,7 +318,7 @@ function createCampaignCard(campaign) {
     ? timeRemaining(campaign.deadline)
     : "Deadline passed";
   card.querySelector(".progress-completed").style.width = `${campaign.progress}%`;
-  card.querySelector(".owner-line").textContent = `Owner ${shortAddress(campaign.owner)} • You backed ${formatEth(campaign.contribution)} ETH`;
+  card.querySelector(".owner-line").textContent = `Owner ${shortAddress(campaign.owner)} • You backed ${formatTokenAmount(campaign.contribution)}`;
 
   const donateForm = card.querySelector(".donate-form");
   donateForm.addEventListener("submit", (event) => {
@@ -360,7 +365,7 @@ async function donateToCampaign(campaignId, amount) {
   try {
     ensureReady();
     setBusy(true, "Sending donation...");
-    const tx = await contract.donate(campaignId, { value: ethers.parseEther(amount) });
+    const tx = await contract.donate(campaignId, { value: parseTokenAmount(amount) });
     showMessage("Donation submitted. Waiting for confirmation...", "success");
     await tx.wait();
     showMessage("Donation confirmed.", "success");
@@ -415,19 +420,19 @@ function updateStats(campaigns) {
   const successful = campaigns.filter((campaign) => campaign.successful).length;
   const contribution = campaigns.reduce((sum, campaign) => sum + campaign.contribution, 0n);
 
-  statEls.heroRaised.textContent = `${formatEth(totalRaised)} ETH`;
+  statEls.heroRaised.textContent = formatTokenAmount(totalRaised);
   statEls.total.textContent = String(campaigns.length);
   statEls.active.textContent = String(active);
   statEls.successful.textContent = String(successful);
-  statEls.contribution.textContent = `${formatEth(contribution)} ETH`;
+  statEls.contribution.textContent = formatTokenAmount(contribution);
 }
 
 function resetStats() {
-  statEls.heroRaised.textContent = "0 ETH";
+  statEls.heroRaised.textContent = `0 ${TOKEN_SYMBOL}`;
   statEls.total.textContent = "0";
   statEls.active.textContent = "0";
   statEls.successful.textContent = "0";
-  statEls.contribution.textContent = "0 ETH";
+  statEls.contribution.textContent = `0 ${TOKEN_SYMBOL}`;
 }
 
 function renderLoadingState() {
@@ -484,11 +489,15 @@ function shortAddress(address) {
   return `${address.slice(0, 6)}...${address.slice(-4)}`;
 }
 
-function formatEth(value) {
-  const formatted = ethers.formatEther(value);
+function parseTokenAmount(amount) {
+  return ethers.parseUnits(amount, TOKEN_DECIMALS);
+}
+
+function formatTokenAmount(value) {
+  const formatted = ethers.formatUnits(value, TOKEN_DECIMALS);
   const [whole, decimals = ""] = formatted.split(".");
   const trimmed = decimals.slice(0, 4).replace(/0+$/, "");
-  return trimmed ? `${whole}.${trimmed}` : whole;
+  return `${trimmed ? `${whole}.${trimmed}` : whole} ${TOKEN_SYMBOL}`;
 }
 
 function formatDate(timestamp) {
