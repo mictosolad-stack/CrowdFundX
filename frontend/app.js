@@ -19,8 +19,8 @@ const statEls = {
 };
 
 const CONTRACT_STORAGE_KEY = "crowdfundx.contractAddress";
-const ADDRESS_PLACEHOLDER = "0xREPLACE_WITH_DEPLOYED_CONTRACT_ADDRESS";
-const DEFAULT_CONTRACT_ADDRESS = "0x42b387aebd51f2f768b05f2c4ffa95e2f4295201";
+const ADDRESS_PLACEHOLDER = "0x6cB0f2432724E4e7dFb7211554CEC4a594b69765";
+const DEFAULT_CONTRACT_ADDRESS = "0x6cB0f2432724E4e7dFb7211554CEC4a594b69765";
 const TOKEN_SYMBOL = "USDC";
 // Arc native USDC uses 18 decimals for msg.value/gas accounting.
 // Use 6 only if this dApp is rewritten to transfer ERC-20 USDC via transferFrom.
