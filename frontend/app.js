@@ -5,8 +5,6 @@ const contractStatus = document.getElementById("contractStatus");
 const message = document.getElementById("message");
 const campaignsContainer = document.getElementById("campaigns");
 const campaignForm = document.getElementById("campaignForm");
-const contractForm = document.getElementById("contractForm");
-const contractAddressInput = document.getElementById("contractAddressInput");
 const refreshButton = document.getElementById("refreshButton");
 const campaignTemplate = document.getElementById("campaignTemplate");
 
@@ -18,8 +16,7 @@ const statEls = {
   contribution: document.getElementById("yourContribution")
 };
 
-const CONTRACT_STORAGE_KEY = "crowdfundx.contractAddress";
-const ADDRESS_PLACEHOLDER = "0x6cB0f2432724E4e7dFb7211554CEC4a594b69765";
+const ADDRESS_PLACEHOLDER = "0xREPLACE_WITH_DEPLOYED_CONTRACT_ADDRESS";
 const DEFAULT_CONTRACT_ADDRESS = "0x6cB0f2432724E4e7dFb7211554CEC4a594b69765";
 const TOKEN_SYMBOL = "USDC";
 // Arc native USDC uses 18 decimals for msg.value/gas accounting.
@@ -40,7 +37,7 @@ async function initialize() {
   setBusy(false);
 
   await loadContractMetadata();
-  applyContractAddress(localStorage.getItem(CONTRACT_STORAGE_KEY) || contractAddress || DEFAULT_CONTRACT_ADDRESS);
+  applyContractAddress(contractAddress || DEFAULT_CONTRACT_ADDRESS);
 
   if (!window.ethereum) {
     showMessage("Install MetaMask or another injected wallet to use CrowdFundX.", "error");
@@ -62,7 +59,6 @@ async function initialize() {
 function bindEvents() {
   walletButton.addEventListener("click", connectWallet);
   campaignForm.addEventListener("submit", handleCampaignCreate);
-  contractForm.addEventListener("submit", handleContractSave);
   refreshButton.addEventListener("click", loadCampaigns);
 }
 
@@ -83,16 +79,15 @@ async function loadContractMetadata() {
       contractAddress = addressData.Crowdfunding || "";
     }
   } catch (error) {
-    showMessage("Could not load local contract metadata. Paste the deployed address to continue.", "warning");
+    showMessage("Could not load local contract metadata. Using the bundled Arc contract config.", "warning");
   }
 }
 
 function applyContractAddress(address) {
   contractAddress = isConfiguredAddress(address) ? address.trim() : "";
-  contractAddressInput.value = contractAddress;
 
   if (contractAddress) {
-    contractStatus.textContent = `Contract: ${shortAddress(contractAddress)}`;
+    contractStatus.textContent = "Arc contract ready";
     contractStatus.className = "ready";
   } else {
     contractStatus.textContent = "Contract not configured";
@@ -165,24 +160,6 @@ async function handleAccountsChanged(accounts) {
   }
 
   await connectWallet();
-}
-
-function handleContractSave(event) {
-  event.preventDefault();
-  const nextAddress = contractAddressInput.value.trim();
-
-  if (!ethers.isAddress(nextAddress)) {
-    showMessage("Enter a valid Ethereum contract address.", "error");
-    return;
-  }
-
-  localStorage.setItem(CONTRACT_STORAGE_KEY, nextAddress);
-  applyContractAddress(nextAddress);
-  showMessage("Contract address saved for this browser.", "success");
-
-  if (signer) {
-    loadCampaigns();
-  }
 }
 
 async function handleCampaignCreate(event) {
