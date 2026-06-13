@@ -22,6 +22,9 @@ const TOKEN_SYMBOL = "USDC";
 // Arc native USDC uses 18 decimals for msg.value/gas accounting.
 // Use 6 only if this dApp is rewritten to transfer ERC-20 USDC via transferFrom.
 const TOKEN_DECIMALS = 18;
+const CHAIN_NAMES = {
+  "5042002": "Arc Testnet"
+};
 
 let provider;
 let signer;
@@ -130,7 +133,8 @@ async function connectWallet() {
 async function updateNetworkBadge() {
   if (!provider) return;
   const network = await provider.getNetwork();
-  const chainName = network.name === "unknown" ? `Chain ${network.chainId}` : network.name;
+  const chainName = CHAIN_NAMES[network.chainId.toString()]
+    || (network.name === "unknown" ? `Chain ${network.chainId}` : network.name);
   networkBadge.textContent = chainName;
   networkBadge.className = "status-badge ready";
 }
