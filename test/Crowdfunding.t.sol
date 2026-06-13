@@ -5,7 +5,6 @@ import {Test} from "forge-std/Test.sol";
 import {Crowdfunding} from "../src/Crowdfunding.sol";
 
 contract CrowdfundingTest is Test {
-
     event CampaignCreated(uint256 indexed campaignId, address indexed owner, uint256 goal, uint256 deadline);
     event DonationReceived(uint256 indexed campaignId, address indexed donor, uint256 amount);
     event FundsWithdrawn(uint256 indexed campaignId, address indexed owner, uint256 amount);
@@ -72,7 +71,7 @@ contract CrowdfundingTest is Test {
 
     function test_CannotCreateCampaignWithPastDeadline() public {
         uint256 goal = 1 ether;
-        uint256 pastDeadline = block.timestamp ;
+        uint256 pastDeadline = block.timestamp;
 
         vm.expectRevert("Deadline must be in the future");
         crowdfunding.createCampaign("Past deadline", "Invalid", goal, pastDeadline);
