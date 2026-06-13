@@ -1,6 +1,8 @@
 # CrowdFundX - Solidity Crowdfunding DApp
 
-A fully decentralized crowdfunding smart contract and frontend DApp for Ethereum Sepolia testnet, built with Solidity and Foundry.
+A fully decentralized crowdfunding smart contract and frontend DApp for Arc testnet, built with Solidity and Foundry. Arc uses native USDC for gas and native value transfers, so campaign goals and donations are shown as USDC in the frontend.
+
+This MVP accepts native USDC through EVM `msg.value`, which uses 18-decimal native value accounting. Arc's ERC-20 USDC interface uses 6 decimals, but that path would require rewriting donations around an ERC-20 contract and `transferFrom`.
 
 ## Project Structure
 
@@ -22,7 +24,7 @@ CrowdFundX/
 
 ### Smart Contract (Solidity 0.8.19)
 - **Campaign Creation**: Users create campaigns with title, description, funding goal, and deadline
-- **Donations**: Accept ETH donations before campaign deadline
+- **Donations**: Accept native USDC donations before campaign deadline
 - **Withdrawals**: Campaign owners withdraw funds only after goal is reached
 - **Refunds**: Donors get refunds if goal is not met after deadline
 - **Reentrancy Protection**: Custom nonReentrant guard
@@ -34,8 +36,8 @@ CrowdFundX/
 - Edge case and security testing
 
 ### Deployment
-- Sepolia testnet configuration
-- Etherscan verification support
+- Arc testnet configuration
+- Block explorer verification support, where available
 - Local Anvil testing support
 
 ## Setup
@@ -59,9 +61,9 @@ cp .env.example .env
 
 3. Fill in environment variables:
 ```
-SEPOLIA_RPC_URL=https://sepolia.infura.io/v3/YOUR_INFURA_KEY
+ARC_RPC_URL=YOUR_ARC_TESTNET_RPC_URL
 PRIVATE_KEY=0xYOUR_PRIVATE_KEY
-ETHERSCAN_API_KEY=YOUR_ETHERSCAN_API_KEY
+EXPLORER_API_KEY=YOUR_EXPLORER_API_KEY
 ```
 
 ## Commands
@@ -77,16 +79,13 @@ forge test -vv              # Verbose output
 forge test --gas-report     # With gas usage
 ```
 
-### Deploy to Sepolia
+### Deploy to Arc Testnet
 ```bash
 source .env
 forge script script/DeployCrowdfunding.s.sol:DeployCrowdfunding \
-  --rpc-url $SEPOLIA_RPC_URL \
+  --rpc-url $ARC_RPC_URL \
   --private-key $PRIVATE_KEY \
-  --broadcast \
-  --verify \
-  --verifier etherscan \
-  --etherscan-api-key $ETHERSCAN_API_KEY
+  --broadcast
 ```
 
 ### Deploy to Local Anvil
@@ -123,11 +122,11 @@ forge script script/DeployCrowdfunding.s.sol:DeployCrowdfunding \
 
 To run the frontend:
 ```bash
-cd frontend
-npx http-server -c-1
+npm install
+npm run dev
 ```
 
-Open `http://localhost:8080` in browser with MetaMask connected to Sepolia.
+Open `http://localhost:8080` in your browser with MetaMask connected to Arc testnet. Paste your deployed `Crowdfunding` contract address into the frontend setup field.
 
 ## Test Coverage
 

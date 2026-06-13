@@ -57,6 +57,7 @@ contract Crowdfunding {
     function donate(uint256 campaignId) external payable campaignExists(campaignId) {
         Campaign storage campaign = campaigns[campaignId];
         require(block.timestamp <= campaign.deadline, "Campaign deadline passed");
+        require(!campaign.withdrawn, "Campaign already withdrawn");
         require(msg.value > 0, "Donation must be greater than 0");
 
         if (contributions[campaignId][msg.sender] == 0) {

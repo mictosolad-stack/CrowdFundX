@@ -221,6 +221,21 @@ contract CrowdfundingTest is Test {
         crowdfunding.withdraw(1);
     }
 
+    function test_CannotDonateAfterWithdrawal() public {
+        uint256 goal = 1 ether;
+        uint256 deadline = block.timestamp + 7 days;
+        crowdfunding.createCampaign("Settled project", "Already funded", goal, deadline);
+
+        vm.prank(alice);
+        crowdfunding.donate{value: 1 ether}(1);
+
+        crowdfunding.withdraw(1);
+
+        vm.prank(bob);
+        vm.expectRevert("Campaign already withdrawn");
+        crowdfunding.donate{value: 0.1 ether}(1);
+    }
+
     // ============ Refund Tests ============
 
     function test_RefundWhenGoalNotReached() public {
