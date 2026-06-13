@@ -11,10 +11,19 @@
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="./" aria-label="CrowdFundX home">
+    <a class="brand" href="#home" data-view-link="home" aria-label="CrowdFundX home">
       <span class="brand-mark">CX</span>
       <span>CrowdFundX</span>
     </a>
+
+    <nav class="main-nav" aria-label="CrowdFundX sections">
+      <a href="#home" data-view-link="home">Home</a>
+      <a href="#create" data-view-link="create">Create</a>
+      <a href="#explore" data-view-link="explore">Explore</a>
+      <a href="#owned" data-view-link="owned">My Campaigns</a>
+      <a href="#donated" data-view-link="donated">Donated</a>
+      <a href="#activity" data-view-link="activity">Activity</a>
+    </nav>
 
     <div class="wallet-area">
       <span id="networkBadge" class="status-badge muted">No network</span>
@@ -26,28 +35,6 @@
   </header>
 
   <main>
-    <section class="hero-band" aria-labelledby="pageTitle">
-      <div class="hero-copy">
-        <p class="eyebrow">On-chain campaign funding</p>
-        <h1 id="pageTitle">Launch, back, and settle crowdfunding campaigns.</h1>
-        <p>
-          Create USDC goals on Arc, track real-time funding, withdraw successful campaigns, and claim refunds when a campaign misses its target.
-        </p>
-      </div>
-
-      <div class="impact-panel" aria-label="CrowdFundX overview">
-        <div class="impact-rings" aria-hidden="true">
-          <span></span>
-          <span></span>
-          <span></span>
-        </div>
-        <div class="impact-stat">
-          <strong id="heroRaised">0 USDC</strong>
-          <span>Total raised</span>
-        </div>
-      </div>
-    </section>
-
     <section class="notice-row" aria-live="polite">
       <div>
         <span id="walletAddress">Wallet not connected</span>
@@ -56,34 +43,79 @@
       <p id="message">Connect your wallet on Arc testnet to get started.</p>
     </section>
 
-    <section class="stats-grid" aria-label="Campaign statistics">
-      <article>
-        <span>Total campaigns</span>
-        <strong id="totalCampaigns">0</strong>
-      </article>
-      <article>
-        <span>Active</span>
-        <strong id="activeCampaigns">0</strong>
-      </article>
-      <article>
-        <span>Successful</span>
-        <strong id="successfulCampaigns">0</strong>
-      </article>
-      <article>
-        <span>Your contribution</span>
-        <strong id="yourContribution">0 USDC</strong>
-      </article>
-    </section>
-
-    <section class="workspace">
-      <div class="create-panel">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Creator desk</p>
-            <h2>Create campaign</h2>
+    <section id="view-home" class="view is-active" data-view="home" aria-labelledby="homeTitle">
+      <div class="hero-band">
+        <div class="hero-copy">
+          <p class="eyebrow">On-chain campaign funding</p>
+          <h1 id="homeTitle">Crowdfunding that settles transparently on Arc.</h1>
+          <p>
+            CrowdFundX helps people launch funding goals, back projects with native USDC, withdraw successful campaigns, and claim refunds when campaigns miss their target.
+          </p>
+          <div class="hero-actions">
+            <button class="primary-button" type="button" data-view-action="create">Create Campaign</button>
+            <button class="secondary-button" type="button" data-view-action="explore">Explore Campaigns</button>
           </div>
         </div>
 
+        <div class="impact-panel" aria-label="CrowdFundX overview">
+          <div class="impact-rings" aria-hidden="true">
+            <span></span>
+            <span></span>
+            <span></span>
+          </div>
+          <div class="impact-stat">
+            <strong id="heroRaised">0 USDC</strong>
+            <span>Total raised</span>
+          </div>
+        </div>
+      </div>
+
+      <section class="stats-grid" aria-label="Campaign statistics">
+        <article>
+          <span>Total campaigns</span>
+          <strong id="totalCampaigns">0</strong>
+        </article>
+        <article>
+          <span>Active</span>
+          <strong id="activeCampaigns">0</strong>
+        </article>
+        <article>
+          <span>Successful</span>
+          <strong id="successfulCampaigns">0</strong>
+        </article>
+        <article>
+          <span>Your contribution</span>
+          <strong id="yourContribution">0 USDC</strong>
+        </article>
+      </section>
+
+      <section class="info-grid" aria-label="How CrowdFundX works">
+        <article>
+          <span>01</span>
+          <h2>Create a goal</h2>
+          <p>Campaign owners set a title, story, USDC target, and deadline.</p>
+        </article>
+        <article>
+          <span>02</span>
+          <h2>Back projects</h2>
+          <p>Supporters donate native USDC directly through the smart contract.</p>
+        </article>
+        <article>
+          <span>03</span>
+          <h2>Settle on-chain</h2>
+          <p>Successful campaigns can be withdrawn. Failed campaigns unlock refunds for donors.</p>
+        </article>
+      </section>
+    </section>
+
+    <section id="view-create" class="view" data-view="create" aria-labelledby="createTitle">
+      <div class="page-heading">
+        <p class="eyebrow">Creator desk</p>
+        <h1 id="createTitle">Create a campaign</h1>
+        <p>Set a clear funding target and deadline. The campaign becomes available on-chain immediately after confirmation.</p>
+      </div>
+
+      <div class="create-panel page-panel">
         <form id="campaignForm" class="stacked-form">
           <label>
             Campaign title
@@ -110,20 +142,72 @@
           <button type="submit" class="primary-button wide-button">Create Campaign</button>
         </form>
       </div>
+    </section>
 
-      <section class="campaign-panel" aria-labelledby="campaignsTitle">
-        <div class="section-heading">
-          <div>
-            <p class="eyebrow">Explore</p>
-            <h2 id="campaignsTitle">Campaigns</h2>
-          </div>
-          <button id="refreshButton" type="button" class="icon-button" aria-label="Refresh campaigns" title="Refresh campaigns">
-            <span aria-hidden="true">↻</span>
-          </button>
+    <section id="view-explore" class="view" data-view="explore" aria-labelledby="exploreTitle">
+      <div class="section-heading page-heading-row">
+        <div>
+          <p class="eyebrow">Explore</p>
+          <h1 id="exploreTitle">All campaigns</h1>
         </div>
+        <button id="refreshButton" type="button" class="icon-button" aria-label="Refresh campaigns" title="Refresh campaigns">
+          <span aria-hidden="true">↻</span>
+        </button>
+      </div>
 
-        <div id="campaigns" class="campaign-list"></div>
+      <div class="search-bar">
+        <label for="campaignSearch">Search campaigns</label>
+        <input id="campaignSearch" type="search" placeholder="Search by title, description, owner, or campaign ID" />
+      </div>
+
+      <div id="campaigns" class="campaign-list"></div>
+    </section>
+
+    <section id="view-owned" class="view" data-view="owned" aria-labelledby="ownedTitle">
+      <div class="page-heading">
+        <p class="eyebrow">Owner dashboard</p>
+        <h1 id="ownedTitle">Campaigns you own</h1>
+        <p>Track campaigns created by your connected wallet and withdraw when a goal has been reached.</p>
+      </div>
+      <div id="ownedCampaigns" class="campaign-list"></div>
+    </section>
+
+    <section id="view-donated" class="view" data-view="donated" aria-labelledby="donatedTitle">
+      <div class="page-heading">
+        <p class="eyebrow">Supporter dashboard</p>
+        <h1 id="donatedTitle">Campaigns you donated to</h1>
+        <p>Review the campaigns you backed and claim refunds when an unsuccessful campaign has ended.</p>
+      </div>
+      <div id="donatedCampaigns" class="campaign-list"></div>
+    </section>
+
+    <section id="view-activity" class="view" data-view="activity" aria-labelledby="activityTitle">
+      <div class="page-heading">
+        <p class="eyebrow">Activity</p>
+        <h1 id="activityTitle">Your CrowdFundX activity</h1>
+        <p>A quick snapshot of your owner and supporter activity on the connected wallet.</p>
+      </div>
+
+      <section class="stats-grid activity-stats" aria-label="Wallet activity statistics">
+        <article>
+          <span>Owned campaigns</span>
+          <strong id="ownedCount">0</strong>
+        </article>
+        <article>
+          <span>Backed campaigns</span>
+          <strong id="backedCount">0</strong>
+        </article>
+        <article>
+          <span>Total backed</span>
+          <strong id="backedTotal">0 USDC</strong>
+        </article>
+        <article>
+          <span>Refundable</span>
+          <strong id="refundableCount">0</strong>
+        </article>
       </section>
+
+      <div id="activityFeed" class="activity-feed"></div>
     </section>
   </main>
 
@@ -175,6 +259,11 @@
       <div class="owner-actions"></div>
     </article>
   </template>
+
+  <div id="toast" class="toast" role="alert" aria-live="assertive" aria-hidden="true">
+    <strong id="toastTitle"></strong>
+    <p id="toastMessage"></p>
+  </div>
 
   <script src="https://cdn.jsdelivr.net/npm/ethers@6.9.0/dist/ethers.umd.min.js"></script>
   <script type="module" src="app.js"></script>

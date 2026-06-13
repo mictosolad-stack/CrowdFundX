@@ -3,17 +3,35 @@ const walletAddress = document.getElementById("walletAddress");
 const networkBadge = document.getElementById("networkBadge");
 const contractStatus = document.getElementById("contractStatus");
 const message = document.getElementById("message");
-const campaignsContainer = document.getElementById("campaigns");
 const campaignForm = document.getElementById("campaignForm");
 const refreshButton = document.getElementById("refreshButton");
+const campaignSearch = document.getElementById("campaignSearch");
 const campaignTemplate = document.getElementById("campaignTemplate");
+const toast = document.getElementById("toast");
+const toastTitle = document.getElementById("toastTitle");
+const toastMessage = document.getElementById("toastMessage");
+
+const views = Array.from(document.querySelectorAll("[data-view]"));
+const navLinks = Array.from(document.querySelectorAll("[data-view-link]"));
+const viewActions = Array.from(document.querySelectorAll("[data-view-action]"));
+
+const containers = {
+  explore: document.getElementById("campaigns"),
+  owned: document.getElementById("ownedCampaigns"),
+  donated: document.getElementById("donatedCampaigns"),
+  activity: document.getElementById("activityFeed")
+};
 
 const statEls = {
   heroRaised: document.getElementById("heroRaised"),
   total: document.getElementById("totalCampaigns"),
   active: document.getElementById("activeCampaigns"),
   successful: document.getElementById("successfulCampaigns"),
-  contribution: document.getElementById("yourContribution")
+  contribution: document.getElementById("yourContribution"),
+  ownedCount: document.getElementById("ownedCount"),
+  backedCount: document.getElementById("backedCount"),
+  backedTotal: document.getElementById("backedTotal"),
+  refundableCount: document.getElementById("refundableCount")
 };
 
 const ADDRESS_PLACEHOLDER = "0xREPLACE_WITH_DEPLOYED_CONTRACT_ADDRESS";
@@ -22,9 +40,11 @@ const TOKEN_SYMBOL = "USDC";
 // Arc native USDC uses 18 decimals for msg.value/gas accounting.
 // Use 6 only if this dApp is rewritten to transfer ERC-20 USDC via transferFrom.
 const TOKEN_DECIMALS = 18;
+const ARC_TESTNET_CHAIN_ID = 5042002n;
 const CHAIN_NAMES = {
   "5042002": "Arc Testnet"
 };
+const WRONG_NETWORK_MESSAGE = "Switch your wallet network to Arc Testnet to use CrowdFundX.";
 
 let provider;
 let signer;
@@ -33,11 +53,17 @@ let userAddress = "";
 let contractAddress = "";
 let contractAbi = [];
 let readInProgress = false;
+let toastTimer;
+let campaignsCache = [];
+let activeView = "home";
 
 async function initialize() {
   setDefaultDeadline();
   bindEvents();
   setBusy(false);
+  setView(routeFromHash());
+  resetStats();
+  renderDisconnectedStates();
 
   await loadContractMetadata();
   applyContractAddress(contractAddress || DEFAULT_CONTRACT_ADDRESS);
@@ -45,7 +71,7 @@ async function initialize() {
   if (!window.ethereum) {
     showMessage("Install MetaMask or another injected wallet to use CrowdFundX.", "error");
     walletButton.disabled = true;
-    renderEmptyState("Wallet required", "Install a browser wallet, then refresh this page.");
+    renderAllEmptyStates("Wallet required", "Install a browser wallet, then refresh this page.");
     return;
   }
 
@@ -54,8 +80,6 @@ async function initialize() {
 
   if (window.ethereum.selectedAddress) {
     await connectWallet();
-  } else {
-    renderEmptyState("Connect wallet", "Connect your wallet on Arc testnet to create campaigns and load on-chain data.");
   }
 }
 
@@ -63,6 +87,37 @@ function bindEvents() {
   walletButton.addEventListener("click", connectWallet);
   campaignForm.addEventListener("submit", handleCampaignCreate);
   refreshButton.addEventListener("click", loadCampaigns);
+  campaignSearch.addEventListener("input", renderAllCampaignViews);
+
+  navLinks.forEach((link) => {
+    link.addEventListener("click", (event) => {
+      event.preventDefault();
+      setView(link.dataset.viewLink);
+    });
+  });
+
+  viewActions.forEach((button) => {
+    button.addEventListener("click", () => setView(button.dataset.viewAction));
+  });
+
+  window.addEventListener("hashchange", () => setView(routeFromHash(), false));
+}
+
+function routeFromHash() {
+  const route = window.location.hash.replace("#", "");
+  return views.some((view) => view.dataset.view === route) ? route : "home";
+}
+
+function setView(viewName, updateHash = true) {
+  activeView = viewName;
+  views.forEach((view) => view.classList.toggle("is-active", view.dataset.view === viewName));
+  navLinks.forEach((link) => link.classList.toggle("is-active", link.dataset.viewLink === viewName));
+
+  if (updateHash && window.location.hash !== `#${viewName}`) {
+    window.location.hash = viewName;
+  }
+
+  renderAllCampaignViews();
 }
 
 async function loadContractMetadata() {
@@ -117,9 +172,17 @@ async function connectWallet() {
     applyContractAddress(contractAddress);
     updateWalletUi();
 
+    if (!(await isOnRequiredNetwork())) {
+      campaignsCache = [];
+      resetStats();
+      renderAllEmptyStates("Wrong network", WRONG_NETWORK_MESSAGE);
+      showMessage(WRONG_NETWORK_MESSAGE, "error");
+      return;
+    }
+
     if (!contractAddress) {
       showMessage("Contract address is not configured.", "warning");
-      renderEmptyState("Contract address needed", "Add a deployed contract address to the app config.");
+      renderAllEmptyStates("Contract address needed", "Add a deployed contract address to the app config.");
       return;
     }
 
@@ -136,7 +199,9 @@ async function updateNetworkBadge() {
   const chainName = CHAIN_NAMES[network.chainId.toString()]
     || (network.name === "unknown" ? `Chain ${network.chainId}` : network.name);
   networkBadge.textContent = chainName;
-  networkBadge.className = "status-badge ready";
+  networkBadge.className = network.chainId === ARC_TESTNET_CHAIN_ID
+    ? "status-badge ready"
+    : "status-badge warning";
 }
 
 function updateWalletUi() {
@@ -157,9 +222,10 @@ async function handleAccountsChanged(accounts) {
   if (!userAddress) {
     signer = undefined;
     contract = undefined;
+    campaignsCache = [];
     updateWalletUi();
     resetStats();
-    renderEmptyState("Connect wallet", "Reconnect your wallet to continue using CrowdFundX.");
+    renderDisconnectedStates();
     return;
   }
 
@@ -171,6 +237,7 @@ async function handleCampaignCreate(event) {
 
   try {
     ensureReady();
+    await ensureRequiredNetwork();
     const title = document.getElementById("campaignTitle").value.trim();
     const description = document.getElementById("campaignDescription").value.trim();
     const goal = document.getElementById("campaignGoal").value;
@@ -194,6 +261,7 @@ async function handleCampaignCreate(event) {
     setDefaultDeadline();
     showMessage("Campaign created successfully.", "success");
     await loadCampaigns();
+    setView("owned");
   } catch (error) {
     showMessage(readableError(error, "Failed to create campaign."), "error");
   } finally {
@@ -206,18 +274,12 @@ async function loadCampaigns() {
 
   try {
     ensureReady();
+    await ensureRequiredNetwork();
     readInProgress = true;
     refreshButton.disabled = true;
-    campaignsContainer.innerHTML = "";
-    renderLoadingState();
+    renderAllLoadingStates();
 
     const count = Number(await contract.campaignCount());
-    if (count === 0) {
-      resetStats();
-      renderEmptyState("No campaigns yet", "Create the first campaign from the creator desk.");
-      return;
-    }
-
     const campaigns = [];
     for (let id = 1; id <= count; id += 1) {
       const campaign = await contract.getCampaign(id);
@@ -227,12 +289,14 @@ async function loadCampaigns() {
       campaigns.push(normalizeCampaign(id, campaign, contribution));
     }
 
-    updateStats(campaigns);
-    renderCampaigns(campaigns);
+    campaignsCache = campaigns;
+    updateStats(campaignsCache);
+    renderAllCampaignViews();
     showMessage(`Loaded ${count} campaign${count === 1 ? "" : "s"}.`, "success");
   } catch (error) {
-    renderEmptyState("Could not load campaigns", readableError(error, "Check your wallet network and contract address."));
-    showMessage(readableError(error, "Unable to load campaigns."), "error");
+    const text = readableError(error, "Unable to load campaigns.");
+    renderAllEmptyStates("Could not load campaigns", text);
+    showMessage(text, "error");
   } finally {
     readInProgress = false;
     refreshButton.disabled = false;
@@ -269,19 +333,76 @@ function normalizeCampaign(id, campaign, contribution) {
   };
 }
 
-function renderCampaigns(campaigns) {
-  campaignsContainer.innerHTML = "";
-  campaigns
-    .slice()
-    .sort((a, b) => b.id - a.id)
-    .forEach((campaign) => campaignsContainer.appendChild(createCampaignCard(campaign)));
+function renderAllCampaignViews() {
+  renderCampaignList(containers.explore, filteredExploreCampaigns(), {
+    emptyTitle: "No campaigns found",
+    emptyDescription: searchTerm()
+      ? "Try another title, owner address, description, or campaign ID."
+      : "Create the first campaign from the creator page."
+  });
+
+  renderCampaignList(containers.owned, ownedCampaigns(), {
+    emptyTitle: "No owned campaigns",
+    emptyDescription: userAddress
+      ? "Campaigns created by your connected wallet will appear here."
+      : "Connect your wallet to see campaigns you own."
+  });
+
+  renderCampaignList(containers.donated, donatedCampaigns(), {
+    emptyTitle: "No donations yet",
+    emptyDescription: userAddress
+      ? "Campaigns you support with USDC will appear here."
+      : "Connect your wallet to see campaigns you donated to."
+  });
+
+  renderActivity();
+}
+
+function filteredExploreCampaigns() {
+  const term = searchTerm();
+  const campaigns = campaignsCache.slice().sort((a, b) => b.id - a.id);
+  if (!term) return campaigns;
+  return campaigns.filter((campaign) => [
+    String(campaign.id),
+    campaign.title,
+    campaign.description,
+    campaign.owner
+  ].some((value) => value.toLowerCase().includes(term)));
+}
+
+function ownedCampaigns() {
+  if (!userAddress) return [];
+  return campaignsCache
+    .filter((campaign) => campaign.owner.toLowerCase() === userAddress.toLowerCase())
+    .sort((a, b) => b.id - a.id);
+}
+
+function donatedCampaigns() {
+  if (!userAddress) return [];
+  return campaignsCache
+    .filter((campaign) => campaign.contribution > 0n)
+    .sort((a, b) => b.id - a.id);
+}
+
+function searchTerm() {
+  return campaignSearch.value.trim().toLowerCase();
+}
+
+function renderCampaignList(container, campaigns, emptyState) {
+  container.innerHTML = "";
+  if (!campaigns.length) {
+    renderEmptyState(container, emptyState.emptyTitle, emptyState.emptyDescription);
+    return;
+  }
+
+  campaigns.forEach((campaign) => container.appendChild(createCampaignCard(campaign)));
 }
 
 function createCampaignCard(campaign) {
   const card = campaignTemplate.content.firstElementChild.cloneNode(true);
   const state = campaignState(campaign);
-  const isOwner = campaign.owner.toLowerCase() === userAddress.toLowerCase();
-  const canDonate = campaign.active && !campaign.withdrawn;
+  const isOwner = Boolean(userAddress) && campaign.owner.toLowerCase() === userAddress.toLowerCase();
+  const canDonate = Boolean(userAddress) && campaign.active && !campaign.withdrawn;
   const canWithdraw = isOwner && campaign.successful && !campaign.withdrawn;
   const canRefund = !campaign.active && !campaign.successful && campaign.contribution > 0n;
 
@@ -345,12 +466,14 @@ async function donateToCampaign(campaignId, amount) {
 
   try {
     ensureReady();
+    await ensureRequiredNetwork();
     setBusy(true, "Sending donation...");
     const tx = await contract.donate(campaignId, { value: parseTokenAmount(amount) });
     showMessage("Donation submitted. Waiting for confirmation...", "success");
     await tx.wait();
     showMessage("Donation confirmed.", "success");
     await loadCampaigns();
+    setView("donated");
   } catch (error) {
     showMessage(readableError(error, "Donation failed."), "error");
   } finally {
@@ -361,6 +484,7 @@ async function donateToCampaign(campaignId, amount) {
 async function withdrawFromCampaign(campaignId) {
   try {
     ensureReady();
+    await ensureRequiredNetwork();
     setBusy(true, "Withdrawing funds...");
     const tx = await contract.withdraw(campaignId);
     await tx.wait();
@@ -376,6 +500,7 @@ async function withdrawFromCampaign(campaignId) {
 async function refundFromCampaign(campaignId) {
   try {
     ensureReady();
+    await ensureRequiredNetwork();
     setBusy(true, "Claiming refund...");
     const tx = await contract.refund(campaignId);
     await tx.wait();
@@ -386,6 +511,67 @@ async function refundFromCampaign(campaignId) {
   } finally {
     setBusy(false);
   }
+}
+
+function renderActivity() {
+  const owned = ownedCampaigns();
+  const backed = donatedCampaigns();
+  const backedTotal = backed.reduce((sum, campaign) => sum + campaign.contribution, 0n);
+  const refundable = backed.filter((campaign) => !campaign.active && !campaign.successful).length;
+
+  statEls.ownedCount.textContent = String(owned.length);
+  statEls.backedCount.textContent = String(backed.length);
+  statEls.backedTotal.textContent = formatTokenAmount(backedTotal);
+  statEls.refundableCount.textContent = String(refundable);
+
+  containers.activity.innerHTML = "";
+  if (!userAddress) {
+    renderEmptyState(containers.activity, "Connect wallet", "Connect your wallet to track your CrowdFundX activity.");
+    return;
+  }
+
+  const entries = [
+    ...owned.map((campaign) => ({
+      title: `Created campaign #${campaign.id}`,
+      meta: campaign.title,
+      amount: formatTokenAmount(campaign.raised),
+      state: campaignState(campaign).label
+    })),
+    ...backed.map((campaign) => ({
+      title: `Backed campaign #${campaign.id}`,
+      meta: campaign.title,
+      amount: formatTokenAmount(campaign.contribution),
+      state: campaign.active ? "Active" : campaign.successful ? "Succeeded" : "Refundable"
+    }))
+  ].sort((a, b) => Number(b.title.match(/\d+/)?.[0] || 0) - Number(a.title.match(/\d+/)?.[0] || 0));
+
+  if (!entries.length) {
+    renderEmptyState(containers.activity, "No activity yet", "Create or back a campaign and your activity will appear here.");
+    return;
+  }
+
+  entries.forEach((entry) => {
+    const item = document.createElement("article");
+    item.className = "activity-item";
+
+    const content = document.createElement("div");
+    const title = document.createElement("h2");
+    title.textContent = entry.title;
+    const meta = document.createElement("p");
+    meta.textContent = entry.meta;
+    content.append(title, meta);
+
+    const detail = document.createElement("div");
+    detail.className = "activity-detail";
+    const amount = document.createElement("strong");
+    amount.textContent = entry.amount;
+    const state = document.createElement("span");
+    state.textContent = entry.state;
+    detail.append(amount, state);
+
+    item.append(content, detail);
+    containers.activity.appendChild(item);
+  });
 }
 
 function campaignState(campaign) {
@@ -406,6 +592,7 @@ function updateStats(campaigns) {
   statEls.active.textContent = String(active);
   statEls.successful.textContent = String(successful);
   statEls.contribution.textContent = formatTokenAmount(contribution);
+  renderActivity();
 }
 
 function resetStats() {
@@ -414,33 +601,62 @@ function resetStats() {
   statEls.active.textContent = "0";
   statEls.successful.textContent = "0";
   statEls.contribution.textContent = `0 ${TOKEN_SYMBOL}`;
+  statEls.ownedCount.textContent = "0";
+  statEls.backedCount.textContent = "0";
+  statEls.backedTotal.textContent = `0 ${TOKEN_SYMBOL}`;
+  statEls.refundableCount.textContent = "0";
 }
 
-function renderLoadingState() {
-  const panel = document.createElement("div");
-  panel.className = "empty-state";
-  panel.textContent = "Loading campaigns...";
-  campaignsContainer.replaceChildren(panel);
+function renderAllLoadingStates() {
+  Object.values(containers).forEach((container) => {
+    if (container === containers.activity) return;
+    const panel = document.createElement("div");
+    panel.className = "empty-state";
+    panel.textContent = "Loading campaigns...";
+    container.replaceChildren(panel);
+  });
 }
 
-function renderEmptyState(title, description) {
+function renderDisconnectedStates() {
+  renderAllEmptyStates("Connect wallet", "Connect your wallet on Arc testnet to load on-chain campaign data.");
+}
+
+function renderAllEmptyStates(title, description) {
+  renderEmptyState(containers.explore, title, description);
+  renderEmptyState(containers.owned, title, description);
+  renderEmptyState(containers.donated, title, description);
+  renderEmptyState(containers.activity, title, description);
+}
+
+function renderEmptyState(container, title, description) {
   const panel = document.createElement("div");
   panel.className = "empty-state";
 
-  const heading = document.createElement("h3");
+  const heading = document.createElement("h2");
   heading.textContent = title;
   const copy = document.createElement("p");
   copy.textContent = description;
 
   panel.append(heading, copy);
-  campaignsContainer.replaceChildren(panel);
+  container.replaceChildren(panel);
 }
 
 function ensureReady() {
   if (!window.ethereum) throw new Error("Wallet extension not found.");
   if (!signer || !userAddress) throw new Error("Connect your wallet first.");
-  if (!contractAddress) throw new Error("Save a deployed contract address first.");
+  if (!contractAddress) throw new Error("Contract address is not configured.");
   if (!contract) throw new Error("Contract is not ready yet.");
+}
+
+async function ensureRequiredNetwork() {
+  if (!provider) throw new Error("Connect your wallet first.");
+  if (!(await isOnRequiredNetwork())) throw new Error(WRONG_NETWORK_MESSAGE);
+}
+
+async function isOnRequiredNetwork() {
+  if (!provider) return false;
+  const network = await provider.getNetwork();
+  return network.chainId === ARC_TESTNET_CHAIN_ID;
 }
 
 function setBusy(isBusy, text = "") {
@@ -454,10 +670,28 @@ function setBusy(isBusy, text = "") {
 function showMessage(text, tone = "success") {
   message.textContent = text;
   message.className = tone;
+  if (tone === "error" || tone === "warning") {
+    showToast(tone === "error" ? "Action needed" : "Heads up", text, tone);
+  }
+}
+
+function showToast(title, text, tone = "error") {
+  clearTimeout(toastTimer);
+  toastTitle.textContent = title;
+  toastMessage.textContent = text;
+  toast.className = `toast is-visible ${tone}`;
+  toast.setAttribute("aria-hidden", "false");
+  toastTimer = setTimeout(() => {
+    toast.className = "toast";
+    toast.setAttribute("aria-hidden", "true");
+  }, 5200);
 }
 
 function readableError(error, fallback) {
   const raw = error?.shortMessage || error?.reason || error?.message || fallback;
+  if (/could not decode result data|BAD_DATA|missing revert data/i.test(raw)) {
+    return WRONG_NETWORK_MESSAGE;
+  }
   return raw.replace(/^execution reverted: /i, "");
 }
 
